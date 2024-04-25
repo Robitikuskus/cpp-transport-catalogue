@@ -4,85 +4,57 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <unordered_map>
 
 #include "geo.h"
 
-namespace tc{
 struct Stop {
     std::string name;
     Coordinates coordinates;
+    // Может это и ложная связь, но так гораздо проще и эффективнее.
+    // Я не понимаю как мне реальзовать словарь с остановками и маршрутами,
+    // проходящими через них, без дублирования строк.
+    // Сделать map<Stop*, std::set<Route*>> тоже никак не получается, хотя я понимаю,
+    // что это должно быть возможно.
+    // Так же нельзя сделать map<string_view...>, что очевидно.
     std::set<std::string_view> routes;
-    bool is_found = true;
-    bool is_not_empty = true;
 
     Stop() = default;
 
-    Stop(bool is_found_ = true, bool is_not_empty_ = true)
-    : is_found(is_found_), is_not_empty(is_not_empty_) {}
-
-    Stop(const std::set<std::string_view>& routes_)
-    : routes(routes_) {}
+    Stop(std::string&& name_, const Coordinates& coordinates_)
+    : name(std::move(name_)), coordinates(coordinates_) {}
     
     Stop(const std::string_view& name_, const Coordinates& coordinates_)
     : name(name_), coordinates(coordinates_) {}
 
-    bool operator==(const Stop& other) const {
-        return name == other.name;
-    }
-
     bool operator==(const std::string_view& other) const {
-        return name == other;
-    }
-
-    bool operator==(const std::string& other) const {
         return name == other;
     }
 };
 
 struct Route {
     std::string name;
-    size_t stops_count = 0;
-    size_t unique_stops_count = 0;
-    double distance = 0;
+    std::vector<Stop*> stops;
 
-    bool operator==(const Route& other) const {
-        return name == other.name;
-    }
+    Route() = default;
+
+    Route(std::string&& name_)
+    : name(std::move(name_)) {}
 
     bool operator==(const std::string_view& other) const {
         return name == other;
     }
-
-    bool operator==(const std::string& other) const {
-        return name == other;
-    }
 };
-
-struct RouteInfo {
-    size_t stops_count = 0;
-    size_t unique_stops_count = 0;
-    double route_length = 0;
-
-    bool is_found = false;
-
-    RouteInfo(bool is_found_): is_found(is_found_) {}
-
-    RouteInfo(bool is_found_, size_t stops_count_,
-        size_t unique_stops_count_, double route_length_)
-    : stops_count(stops_count_) ,unique_stops_count(unique_stops_count_)
-    , route_length(route_length_), is_found(is_found_) {}
-};
-} // namespace tc
 
 class TransportCatalogue {
 public:
-    void AddStop(const std::string_view& name, const Coordinates& coordinates);
-    void AddRoute(const std::string_view& name, const std::vector<std::string_view>& stops);
+    void AddStop(std::string&& name, const Coordinates& coordinates);
+    void AddRoute(std::string&& name, const std::vector<std::string_view>& stops);
 
-    tc::RouteInfo OutRoute(const std::string_view& name) const;
-    tc::Stop OutStop(const std::string_view& name) const;
+    const Stop* GetStop(const std::string_view& name) const;
+    const Route* GetRoute(const std::string_view& name) const;
 
 private:
-    std::deque<tc::Route> routes_;
-    std::deque<tc::Stop> stops_;
+    std::deque<Route> routes_;
+    std::deque<Stop> stops_;
 };

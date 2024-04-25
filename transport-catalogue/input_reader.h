@@ -7,7 +7,6 @@
 #include "transport_catalogue.h"
 
 struct CommandDescription {
-    // Определяет, задана ли команда (поле command непустое)
     explicit operator bool() const {
         return !command.empty();
     }
@@ -16,22 +15,15 @@ struct CommandDescription {
         return !operator bool();
     }
 
-    std::string command;      // Название команды
-    std::string id;           // id маршрута или остановки
-    std::string description;  // Параметры команды
+    std::string command;
+    std::string id;
+    std::string description;
 };
 
 class InputReader {
 public:
-    /**
-     * Парсит строку в структуру CommandDescription и сохраняет результат в commands_
-     */
     void ParseLine(std::string_view line);
-
-    /**
-     * Наполняет данными транспортный справочник, используя команды из commands_
-     */
-    void ApplyCommands(TransportCatalogue& catalogue) const;
+    void ApplyCommands(TransportCatalogue& catalogue);
 
 private:
     std::vector<CommandDescription> commands_;

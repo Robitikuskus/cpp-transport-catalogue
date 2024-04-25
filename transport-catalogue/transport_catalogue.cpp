@@ -1,42 +1,36 @@
 #include "transport_catalogue.h"
 #include <algorithm>
-#include <unordered_set>
-#include <stdexcept>
 #include <iostream>
 
-void TransportCatalogue::AddStop(const std::string_view& name, const Coordinates& coordinates) {
-    stops_.emplace_back(name, coordinates);
+void TransportCatalogue::AddStop(std::string&& name, const Coordinates& coordinates) {
+    stops_.emplace_back(std::move(name), coordinates);
 }
 
-void TransportCatalogue::AddRoute(const std::string_view& name, const std::vector<std::string_view>& stops) {
-    routes_.emplace_back(tc::Route());
-    routes_.back().name = name;
-    routes_.back().stops_count = stops.size();
+void TransportCatalogue::AddRoute(std::string&& name, const std::vector<std::string_view>& stops) {
+    auto route = Route(std::move(name));
+    routes_.emplace_back(route);
 
-    for (size_t i = 0; i < stops.size() - 1; ++i) {
-        auto current_stop = std::find(stops_.begin(), stops_.end(), stops[i]);
-        auto next_stop = std::find(stops_.begin(), stops_.end(), stops[i + 1]);
-        routes_.back().distance += ComputeDistance(current_stop->coordinates, next_stop->coordinates);
-        current_stop->routes.emplace(routes_.back().name);
+    for (size_t i = 0; i < stops.size(); ++i) {
+        auto stop = std::find(stops_.begin(), stops_.end(), stops[i]);
+        stop->routes.insert(routes_.back().name);
+        routes_.back().stops.push_back(&(*stop));
     }
-
-    routes_.back().unique_stops_count = std::unordered_set<std::string_view>(
-        std::move_iterator(stops.begin()), std::move_iterator(stops.end())).size();
 }
 
-tc::RouteInfo TransportCatalogue::OutRoute(const std::string_view& name) const {
-    auto route = std::find(routes_.begin(), routes_.end(), name);
-    if (route == routes_.end())
-        return {false};
-    return {true, route->stops_count, route->unique_stops_count, route->distance};
-}
-
-tc::Stop TransportCatalogue::OutStop(const std::string_view& name) const {
+const Stop* TransportCatalogue::GetStop(const std::string_view& name) const {
     auto stop = std::find(stops_.begin(), stops_.end(), name);
     if (stop == stops_.end())
-        return {false};
-    if (stop->routes.size() == 0)
-        return {true, false};
+        return nullptr;
 
-    return {stop->routes};
+    const Stop& stop_ref = *stop;
+    return &stop_ref;
+}
+
+const Route* TransportCatalogue::GetRoute(const std::string_view& name) const {
+    auto route = std::find(routes_.begin(), routes_.end(), name);
+    if (route == routes_.end())
+        return nullptr;
+
+    const Route& route_ref = *route;
+    return &route_ref;
 }

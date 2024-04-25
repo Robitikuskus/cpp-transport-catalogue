@@ -102,15 +102,15 @@ void InputReader::ParseLine(std::string_view line) {
     }
 }
 
-void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) const {
-    for (const auto& [command, id, description] : commands_) {
+void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) {
+    for (auto& [command, id, description] : commands_) {
         if (command == "Stop") {
-            catalogue.AddStop(id, ParseCoordinates(description));
+            catalogue.AddStop(std::move(id), ParseCoordinates(description));
         }
     }
-    for (const auto& [command, id, description] : commands_) {
+    for (auto& [command, id, description] : commands_) {
         if (command == "Bus") {
-            catalogue.AddRoute(id, ParseRoute(description));
+            catalogue.AddRoute(std::move(id), ParseRoute(description));
         }
     }
 }
