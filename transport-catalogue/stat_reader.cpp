@@ -32,21 +32,27 @@ void PrintRoute(const Route* route, std::ostream& os) {
     os << route_length << " route length";
 }
 
-void PrintStop(const Stop* stop, std::ostream& os) {
+void PrintStop(const Stop* stop, const TransportCatalogue& tc, std::ostream& os) {
     if (stop == nullptr) {
         os << "not found";
         return;
     }
     
-    if (stop->routes.empty()) {
+    auto routes = tc.GetRoutesByStop(stop);
+    if (routes.empty()) {
         os << "no buses";
         return;
     }
 
+    std::vector<std::string_view> unique_routes;
+    unique_routes.reserve(routes.size());
+    for (const auto& route : routes)
+        unique_routes.push_back(route->name);
+    std::sort(unique_routes.begin(), unique_routes.end());
+
     os << "buses ";
-    for (const auto& route : stop->routes) {
+    for (const auto& route : unique_routes)
         os << route << " ";
-    }
 }
 
 void ParseAndPrintStat(const TransportCatalogue& tansport_catalogue,
@@ -66,7 +72,7 @@ void ParseAndPrintStat(const TransportCatalogue& tansport_catalogue,
         PrintRoute(res, output);
     } else if (command == "Stop") {
         auto res = tansport_catalogue.GetStop(name);
-        PrintStop(res, output);
+        PrintStop(res, tansport_catalogue, output);
     }
     output << '\n';
 }

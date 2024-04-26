@@ -5,19 +5,14 @@
 #include <string_view>
 #include <vector>
 #include <unordered_map>
+#include <memory>
 
 #include "geo.h"
+#include <unordered_set>
 
 struct Stop {
     std::string name;
     Coordinates coordinates;
-    // Может это и ложная связь, но так гораздо проще и эффективнее.
-    // Я не понимаю как мне реальзовать словарь с остановками и маршрутами,
-    // проходящими через них, без дублирования строк.
-    // Сделать map<Stop*, std::set<Route*>> тоже никак не получается, хотя я понимаю,
-    // что это должно быть возможно.
-    // Так же нельзя сделать map<string_view...>, что очевидно.
-    std::set<std::string_view> routes;
 
     Stop() = default;
 
@@ -54,7 +49,14 @@ public:
     const Stop* GetStop(const std::string_view& name) const;
     const Route* GetRoute(const std::string_view& name) const;
 
+    std::unordered_set<Route*> GetRoutesByStop(const Stop* stop) const;
+
 private:
     std::deque<Route> routes_;
     std::deque<Stop> stops_;
+
+    std::unordered_map<std::string_view, Stop*> stop_by_name_;
+    std::unordered_map<std::string_view, Route*> route_by_name_;
+
+    std::unordered_map<Stop*, std::unordered_set<Route*>> route_by_stop_;
 };
