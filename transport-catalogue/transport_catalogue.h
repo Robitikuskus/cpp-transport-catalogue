@@ -6,9 +6,47 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include <unordered_set>
 
 #include "geo.h"
-#include <unordered_set>
+
+struct Stop;
+struct Route;
+
+class TransportCatalogue {
+public:
+    TransportCatalogue() = default;
+
+    void AddStop(std::string&& name, const Coordinates& coordinates) noexcept;
+    void AddStop(const std::string& name, const Coordinates& coordinates) noexcept; 
+    void AddRoute(std::string&& name, const std::vector<std::string_view>& stops);
+
+    void SetStopsDistance(std::string_view stop1, std::string_view stop2, double distance) noexcept;
+
+    const Stop* GetStop(std::string_view name) const noexcept;
+    const Route* GetRoute(std::string_view name) const noexcept;
+
+    double GetStopsDistance(std::string_view stop1, std::string_view stop2) const noexcept;
+
+    std::unordered_set<Route*> GetRoutesByStop(const Stop* stop) const;
+
+private:
+    std::deque<Route> routes_;
+    std::deque<Stop> stops_;
+
+    std::unordered_map<std::string_view, Stop*> stop_by_name_;
+    std::unordered_map<std::string_view, Route*> route_by_name_;
+
+    std::unordered_map<Stop*, std::unordered_set<Route*>> route_by_stop_;
+
+    struct PairStopStopHash {
+        size_t operator()(const std::pair<const Stop*, const Stop*>& pair) const {
+           return std::hash<const Stop*>()(pair.first) ^ std::hash<const Stop*>()(pair.second);
+       }
+    };
+
+    std::unordered_map<std::pair<const Stop*, const Stop*>, double, PairStopStopHash> stop_to_stop_distance_;
+};
 
 struct Stop {
     std::string name;
@@ -19,10 +57,10 @@ struct Stop {
     Stop(std::string&& name_, const Coordinates& coordinates_)
     : name(std::move(name_)), coordinates(coordinates_) {}
     
-    Stop(const std::string_view& name_, const Coordinates& coordinates_)
+    Stop(std::string_view name_, const Coordinates& coordinates_)
     : name(name_), coordinates(coordinates_) {}
 
-    bool operator==(const std::string_view& other) const {
+    bool operator==(std::string_view other) const {
         return name == other;
     }
 };
@@ -36,27 +74,7 @@ struct Route {
     Route(std::string&& name_)
     : name(std::move(name_)) {}
 
-    bool operator==(const std::string_view& other) const {
+    bool operator==(std::string_view other) const {
         return name == other;
     }
-};
-
-class TransportCatalogue {
-public:
-    void AddStop(std::string&& name, const Coordinates& coordinates);
-    void AddRoute(std::string&& name, const std::vector<std::string_view>& stops);
-
-    const Stop* GetStop(const std::string_view& name) const;
-    const Route* GetRoute(const std::string_view& name) const;
-
-    std::unordered_set<Route*> GetRoutesByStop(const Stop* stop) const;
-
-private:
-    std::deque<Route> routes_;
-    std::deque<Stop> stops_;
-
-    std::unordered_map<std::string_view, Stop*> stop_by_name_;
-    std::unordered_map<std::string_view, Route*> route_by_name_;
-
-    std::unordered_map<Stop*, std::unordered_set<Route*>> route_by_stop_;
 };

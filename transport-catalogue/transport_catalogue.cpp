@@ -2,8 +2,13 @@
 #include <algorithm>
 #include <iostream>
 
-void TransportCatalogue::AddStop(std::string&& name, const Coordinates& coordinates) {
+void TransportCatalogue::AddStop(std::string&& name, const Coordinates& coordinates) noexcept {
     stops_.emplace_back(std::move(name), coordinates);
+    stop_by_name_[stops_.back().name] = &stops_.back();
+}
+
+void TransportCatalogue::AddStop(const std::string& name, const Coordinates& coordinates) noexcept {
+    stops_.emplace_back(name, coordinates);
     stop_by_name_[stops_.back().name] = &stops_.back();
 }
 
@@ -19,14 +24,41 @@ void TransportCatalogue::AddRoute(std::string&& name, const std::vector<std::str
     route_by_name_[routes_.back().name] = &routes_.back();
 }
 
-const Stop* TransportCatalogue::GetStop(const std::string_view& name) const {
+void TransportCatalogue::SetStopsDistance(std::string_view name1 , std::string_view name2, double distance) noexcept {
+    auto stop1 = GetStop(name1);
+    auto stop2 = GetStop(name2);
+
+    if (stop1 && stop2) {
+        stop_to_stop_distance_[{stop1, stop2}] = distance;
+    }
+}
+
+double TransportCatalogue::GetStopsDistance(std::string_view name1, std::string_view name2) const noexcept {
+    auto stop1 = GetStop(name1);
+    auto stop2 = GetStop(name2);
+
+    // std::cerr << "stop_to_stop_distance_.count({" << stop1->name << ", " << stop2->name << "}) = " << stop_to_stop_distance_.count({stop1, stop2}) << std::endl;
+
+    if (stop1 && stop2) {
+        if (stop_to_stop_distance_.count({stop1, stop2}) > 0) {
+            return stop_to_stop_distance_.at({stop1, stop2});
+        } else if (stop_to_stop_distance_.count({stop2, stop1}) > 0) {
+            return stop_to_stop_distance_.at({stop2, stop1});
+        } else {
+            return ComputeDistance(stop1->coordinates, stop2->coordinates);
+        }
+    }
+    return -1;
+}
+
+const Stop* TransportCatalogue::GetStop(std::string_view name) const noexcept {
     if (stop_by_name_.count(name) == 0)
         return nullptr;
 
     return stop_by_name_.at(name);
 }
 
-const Route* TransportCatalogue::GetRoute(const std::string_view& name) const {
+const Route* TransportCatalogue::GetRoute(std::string_view name) const noexcept {
     if (route_by_name_.count(name) == 0)
         return nullptr;
 

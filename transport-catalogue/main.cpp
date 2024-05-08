@@ -22,6 +22,8 @@ int main() {
         reader.ApplyCommands(catalogue);
     }
 
+    
+
     int stat_request_count;
     cin >> stat_request_count >> ws;
     for (int i = 0; i < stat_request_count; ++i) {

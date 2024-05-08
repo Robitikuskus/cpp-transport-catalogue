@@ -8,7 +8,7 @@
 #include <iostream>
 #include <iomanip>
 
-void PrintRoute(const Route* route, std::ostream& os) {
+void PrintRoute(const Route* route, const TransportCatalogue& tc, std::ostream& os) {
     if (route == nullptr) {
         os << "not found";
         return;
@@ -23,13 +23,16 @@ void PrintRoute(const Route* route, std::ostream& os) {
     }
     os << unique_stops.size() << " unique stops, ";
     
-    double route_length = 0;
+    double fact_route_length = 0, geo_route_length = 0;
     for (size_t i = 0; i < route->stops.size() - 1; ++i) {
-        auto current_stop = route->stops[i]->coordinates;
-        auto next_stop = route->stops[i + 1]->coordinates;
-        route_length += ComputeDistance(current_stop, next_stop);
+        auto current_stop = route->stops[i];
+        auto next_stop = route->stops[i + 1];
+        
+        fact_route_length += ComputeDistance(current_stop->coordinates, next_stop->coordinates);
+        geo_route_length += tc.GetStopsDistance(current_stop->name, next_stop->name);
     }
-    os << route_length << " route length";
+    os << geo_route_length << " route length, ";
+    os << geo_route_length / fact_route_length << " curvature";
 }
 
 void PrintStop(const Stop* stop, const TransportCatalogue& tc, std::ostream& os) {
@@ -69,7 +72,7 @@ void ParseAndPrintStat(const TransportCatalogue& tansport_catalogue,
     output << command << " " << name << ": ";
     if (command == "Bus") {
         auto res = tansport_catalogue.GetRoute(name);
-        PrintRoute(res, output);
+        PrintRoute(res, tansport_catalogue, output);
     } else if (command == "Stop") {
         auto res = tansport_catalogue.GetStop(name);
         PrintStop(res, tansport_catalogue, output);

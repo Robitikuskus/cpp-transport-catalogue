@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cassert>
 #include <iterator>
+#include <unordered_map>
+#include <string>
 
 /**
  * Парсит строку вида "10.123,  -30.1837" и возвращает пару координат (широта, долгота)
@@ -23,6 +25,35 @@ Coordinates ParseCoordinates(std::string_view str) {
     double lng = std::stod(std::string(str.substr(not_space2)));
 
     return {lat, lng};
+}
+
+auto ParseDistances(std::string_view str) {
+    std::unordered_map<std::string_view, int> res;
+
+    while (!str.empty()) {
+        auto not_space = str.find_first_not_of(' ');
+        auto meters = str.substr(not_space, str.find('m') - not_space);
+        auto to = str.find("to");
+        not_space = str.find_first_not_of(' ', to + 2);
+        auto comma = str.find(',', not_space);
+        auto stop_name = str.substr(not_space, comma - not_space);
+
+        res[stop_name] = std::stoi(std::string(meters));
+
+        str = comma != str.npos ? str.substr(comma + 1) : "";
+    }
+    return res;
+}
+
+auto ParseToCoodrdinatesAndDistances(std::string_view str) {
+    auto first_comma = str.find(',');
+    auto second_comma = str.find(',', first_comma + 1);
+    if (second_comma != str.npos) {
+        auto coords = ParseCoordinates(str.substr(0, second_comma));
+        auto distances = ParseDistances(str.substr(second_comma + 1, str.size() - second_comma));
+        return std::tuple(coords, distances);
+    }
+    return std::tuple(ParseCoordinates(str.substr(0, str.size())), ParseDistances(""));
 }
 
 /**
@@ -105,9 +136,27 @@ void InputReader::ParseLine(std::string_view line) {
 void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) {
     for (auto& [command, id, description] : commands_) {
         if (command == "Stop") {
-            catalogue.AddStop(std::move(id), ParseCoordinates(description));
+            auto [coords, distances] = ParseToCoodrdinatesAndDistances(description);
+            /*
+            Хочу сделать так:
+                catalogue.AddStop(std::move(id), coords);
+            То есть ровно как и было раньше, чтобы не копировать названия остановок.
+            Но, в таком случае при повторном проходе для сохранения расстояний
+            в переменной id уже ничего не будет. Как решить эту проблему?
+            */
+            catalogue.AddStop(id, coords);
         }
     }
+
+    for (auto& [command, id, description] : commands_) {
+        if (command == "Stop") {
+            auto [coords, distances] = ParseToCoodrdinatesAndDistances(description);
+            for (auto& [stop_name, distance] : distances) {
+                catalogue.SetStopsDistance(id, stop_name, distance);
+            }
+        }
+    }
+
     for (auto& [command, id, description] : commands_) {
         if (command == "Bus") {
             catalogue.AddRoute(std::move(id), ParseRoute(description));
