@@ -137,13 +137,6 @@ void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) 
     for (auto& [command, id, description] : commands_) {
         if (command == "Stop") {
             auto [coords, distances] = ParseToCoodrdinatesAndDistances(description);
-            /*
-            Хочу сделать так:
-                catalogue.AddStop(std::move(id), coords);
-            То есть ровно как и было раньше, чтобы не копировать названия остановок.
-            Но, в таком случае при повторном проходе для сохранения расстояний
-            в переменной id уже ничего не будет. Как решить эту проблему?
-            */
             catalogue.AddStop(id, coords);
         }
     }
@@ -159,7 +152,7 @@ void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) 
 
     for (auto& [command, id, description] : commands_) {
         if (command == "Bus") {
-            catalogue.AddRoute(std::move(id), ParseRoute(description));
+            catalogue.AddRoute(id, ParseRoute(description));
         }
     }
 }

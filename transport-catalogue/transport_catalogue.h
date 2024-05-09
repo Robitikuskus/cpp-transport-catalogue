@@ -17,16 +17,15 @@ class TransportCatalogue {
 public:
     TransportCatalogue() = default;
 
-    void AddStop(std::string&& name, const Coordinates& coordinates) noexcept;
     void AddStop(const std::string& name, const Coordinates& coordinates) noexcept; 
-    void AddRoute(std::string&& name, const std::vector<std::string_view>& stops);
+    void AddRoute(const std::string& name, const std::vector<std::string_view>& stops);
 
-    void SetStopsDistance(std::string_view stop1, std::string_view stop2, double distance) noexcept;
+    void SetStopsDistance(std::string_view first, std::string_view second, int distance) noexcept;
 
     const Stop* GetStop(std::string_view name) const noexcept;
     const Route* GetRoute(std::string_view name) const noexcept;
 
-    double GetStopsDistance(std::string_view stop1, std::string_view stop2) const noexcept;
+    double GetStopsDistance(std::string_view first, std::string_view second) const noexcept;
 
     std::unordered_set<Route*> GetRoutesByStop(const Stop* stop) const;
 
@@ -45,7 +44,7 @@ private:
        }
     };
 
-    std::unordered_map<std::pair<const Stop*, const Stop*>, double, PairStopStopHash> stop_to_stop_distance_;
+    std::unordered_map<std::pair<const Stop*, const Stop*>, int, PairStopStopHash> stop_to_stop_distance_;
 };
 
 struct Stop {
@@ -54,8 +53,8 @@ struct Stop {
 
     Stop() = default;
 
-    Stop(std::string&& name_, const Coordinates& coordinates_)
-    : name(std::move(name_)), coordinates(coordinates_) {}
+    Stop(const std::string& name_, const Coordinates& coordinates_)
+    : name(name_), coordinates(coordinates_) {}
     
     Stop(std::string_view name_, const Coordinates& coordinates_)
     : name(name_), coordinates(coordinates_) {}
@@ -71,8 +70,8 @@ struct Route {
 
     Route() = default;
 
-    Route(std::string&& name_)
-    : name(std::move(name_)) {}
+    Route(const std::string& name_)
+    : name(name_) {}
 
     bool operator==(std::string_view other) const {
         return name == other;

@@ -2,21 +2,16 @@
 #include <algorithm>
 #include <iostream>
 
-void TransportCatalogue::AddStop(std::string&& name, const Coordinates& coordinates) noexcept {
-    stops_.emplace_back(std::move(name), coordinates);
-    stop_by_name_[stops_.back().name] = &stops_.back();
-}
-
 void TransportCatalogue::AddStop(const std::string& name, const Coordinates& coordinates) noexcept {
     stops_.emplace_back(name, coordinates);
     stop_by_name_[stops_.back().name] = &stops_.back();
 }
 
-void TransportCatalogue::AddRoute(std::string&& name, const std::vector<std::string_view>& stops) {
-    routes_.emplace_back(std::move(name));
+void TransportCatalogue::AddRoute(const std::string& name, const std::vector<std::string_view>& stops) {
+    routes_.emplace_back(name);
 
-    for (size_t i = 0; i < stops.size(); ++i) {
-        auto stop = stop_by_name_.at(stops[i]);
+    for (const auto& s : stops) {
+        auto stop = stop_by_name_.at(s);
         routes_.back().stops.push_back(stop);
 
         route_by_stop_[stop].insert(&routes_.back());
@@ -24,7 +19,7 @@ void TransportCatalogue::AddRoute(std::string&& name, const std::vector<std::str
     route_by_name_[routes_.back().name] = &routes_.back();
 }
 
-void TransportCatalogue::SetStopsDistance(std::string_view name1 , std::string_view name2, double distance) noexcept {
+void TransportCatalogue::SetStopsDistance(std::string_view name1 , std::string_view name2, int distance) noexcept {
     auto stop1 = GetStop(name1);
     auto stop2 = GetStop(name2);
 
