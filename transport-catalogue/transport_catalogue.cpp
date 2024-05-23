@@ -20,12 +20,12 @@ void TransportCatalogue::AddRoute(const std::string& name,
         route_by_stop_[stop].insert(&routes_.back());
     }
 
-    if (!is_roundtrip) {
-        for (auto s = stops.rbegin() + 1; s != stops.rend(); ++s) {
-            auto stop = stop_by_name_.at(*s);
-            routes_.back().stops.push_back(stop);
-        }
-    }
+    // if (!is_roundtrip) {
+    //     for (auto s = stops.rbegin() + 1; s != stops.rend(); ++s) {
+    //         auto stop = stop_by_name_.at(*s);
+    //         routes_.back().stops.push_back(stop);
+    //     }
+    // }
 
     route_by_name_[routes_.back().name] = &routes_.back();
 }

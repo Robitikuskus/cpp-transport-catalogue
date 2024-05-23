@@ -24,18 +24,17 @@ public:
     // Возвращает маршруты, проходящие через
     std::unordered_set<Route*> GetRoutesByStop(const std::string_view& stop_name) const;
 
-    json::Dict GetRequestResponce(int id,
-        const std::string& type,
-        const std::string& name) const;
-
     json::Document GetRequestsResponce(const json::Array& requests) const;
-    
-    // Этот метод будет нужен в следующей части итогового проекта
-    //svg::Document RenderMap() const;
+    void PrintRequestsResponce(const json::Array& requests, std::ostream& os) const;
+
+    void PrintMap(std::ostream& os) const;
 
 private:
     // RequestHandler использует агрегацию объектов "Транспортный Справочник" и "Визуализатор Карты"
     const TransportCatalogue& catalogue_;
     const MapRenderer& renderer_;
-    //const renderer::MapRenderer& renderer_;
+    
+    json::Dict GetRequestResponce(int id,
+        const std::string& type,
+        const std::string& name) const;
 };

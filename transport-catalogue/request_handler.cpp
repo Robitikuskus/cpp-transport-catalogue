@@ -19,6 +19,9 @@ std::optional<RequestHandler::RouteStat> RequestHandler::GetRouteStat(const std:
     }
      
     stat.stop_count = static_cast<int>(route->stops.size());
+    if (!route->is_roundtrip) {
+        stat.stop_count = stat.stop_count * 2 - 1;
+    }
     
     std::unordered_set<std::string_view> unique_stops;
     for (const auto& stop : route->stops) {
@@ -34,6 +37,17 @@ std::optional<RequestHandler::RouteStat> RequestHandler::GetRouteStat(const std:
         fact_route_length += geo::ComputeDistance(current_stop->coordinates, next_stop->coordinates);
         geo_route_length += catalogue_.GetStopsDistance(current_stop->name, next_stop->name);
     }
+
+    if (!route->is_roundtrip) {
+        for (size_t i = route->stops.size() - 1; i > 0; --i) {
+            auto current_stop = route->stops[i];
+            auto next_stop = route->stops[i - 1];
+            
+            fact_route_length += geo::ComputeDistance(current_stop->coordinates, next_stop->coordinates);
+            geo_route_length += catalogue_.GetStopsDistance(current_stop->name, next_stop->name);
+        }
+    }
+
     stat.route_length = geo_route_length;
     stat.curvature = geo_route_length / fact_route_length;
 
@@ -99,4 +113,12 @@ json::Document RequestHandler::GetRequestsResponce(const json::Array& requests) 
     }
 
     return json::Document(responses);
+}
+
+void RequestHandler::PrintRequestsResponce(const json::Array& requests, std::ostream& os) const {
+    json::Print(GetRequestsResponce(requests), os);
+}
+
+void RequestHandler::PrintMap(std::ostream& os) const {
+    renderer_.Render(catalogue_, os);
 }

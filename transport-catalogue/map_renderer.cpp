@@ -97,6 +97,12 @@ void MapRenderer::Render(const TransportCatalogue& catalogue, std::ostream& out)
             stops_coordinates.emplace(stop->coordinates);
             routes_coordinates.back().emplace_back(stop->coordinates);
         }
+
+        if (!route->is_roundtrip) {
+            for (auto it = route->stops.rbegin() + 1; it < route->stops.rend(); ++it) {
+                routes_coordinates.back().emplace_back((*it)->coordinates);
+            }
+        }
     }
 
     SphereProjector pr(
@@ -154,8 +160,8 @@ void MapRenderer::Render(const TransportCatalogue& catalogue, std::ostream& out)
         document.Add(route_name_stroke);
         document.Add(route_name);
 
-        if (!route->is_roundtrip && route->stops[0] != route->stops[route->stops.size() / 2]) {
-            auto end_coords = pr(route->stops[route->stops.size() / 2]->coordinates);
+        if (!route->is_roundtrip && route->stops.front() != route->stops.back()) {
+            auto end_coords = pr(route->stops.back()->coordinates);
             route_name_stroke.SetPosition(end_coords);
             route_name.SetPosition(end_coords);
 
