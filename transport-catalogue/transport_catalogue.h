@@ -9,21 +9,24 @@
 #include <unordered_set>
 
 #include "geo.h"
-
-struct Stop;
-struct Route;
+#include "domain.h"
 
 class TransportCatalogue {
 public:
     TransportCatalogue() = default;
 
-    void AddStop(const std::string& name, const Coordinates& coordinates) noexcept; 
-    void AddRoute(const std::string& name, const std::vector<std::string_view>& stops);
+    void AddStop(const std::string& name, const geo::Coordinates& coordinates) noexcept; 
+    void AddRoute(const std::string& name,
+        const std::vector<std::string_view>& stops,
+        bool is_roundtrip = false) noexcept;
 
     void SetStopsDistance(std::string_view first, std::string_view second, int distance) noexcept;
 
     const Stop* GetStop(std::string_view name) const noexcept;
     const Route* GetRoute(std::string_view name) const noexcept;
+
+    std::vector<std::string_view> GetStopsNames() const noexcept;
+    std::vector<std::string_view> GetRoutesNames() const noexcept;
 
     double GetStopsDistance(std::string_view first, std::string_view second) const noexcept;
 
@@ -45,35 +48,4 @@ private:
     };
 
     std::unordered_map<std::pair<const Stop*, const Stop*>, int, PairStopStopHash> stop_to_stop_distance_;
-};
-
-struct Stop {
-    std::string name;
-    Coordinates coordinates;
-
-    Stop() = default;
-
-    Stop(const std::string& name_, const Coordinates& coordinates_)
-    : name(name_), coordinates(coordinates_) {}
-    
-    Stop(std::string_view name_, const Coordinates& coordinates_)
-    : name(name_), coordinates(coordinates_) {}
-
-    bool operator==(std::string_view other) const {
-        return name == other;
-    }
-};
-
-struct Route {
-    std::string name;
-    std::vector<Stop*> stops;
-
-    Route() = default;
-
-    Route(const std::string& name_)
-    : name(name_) {}
-
-    bool operator==(std::string_view other) const {
-        return name == other;
-    }
 };

@@ -28,7 +28,7 @@ void PrintRoute(const Route* route, const TransportCatalogue& tc, std::ostream& 
         auto current_stop = route->stops[i];
         auto next_stop = route->stops[i + 1];
         
-        fact_route_length += ComputeDistance(current_stop->coordinates, next_stop->coordinates);
+        fact_route_length += geo::ComputeDistance(current_stop->coordinates, next_stop->coordinates);
         geo_route_length += tc.GetStopsDistance(current_stop->name, next_stop->name);
     }
     os << geo_route_length << " route length, ";
