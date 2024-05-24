@@ -9,14 +9,7 @@
 class RequestHandler {
 public:
     // MapRenderer понадобится в следующей части итогового проекта
-    RequestHandler(const TransportCatalogue& db, const MapRenderer& renderer);
-
-    struct RouteStat {
-        double curvature;
-        double route_length;
-        int stop_count;
-        int unique_stop_count;
-    };
+    RequestHandler(const TransportCatalogue& db, MapRenderer& renderer);
 
     // Возвращает информацию о маршруте (запрос Bus)
     std::optional<RouteStat> GetRouteStat(const std::string_view& route_name) const;
@@ -27,12 +20,12 @@ public:
     json::Document GetRequestsResponce(const json::Array& requests) const;
     void PrintRequestsResponce(const json::Array& requests, std::ostream& os) const;
 
-    void PrintMap(std::ostream& os) const;
+    void PrintMap(std::ostream& os);
 
 private:
     // RequestHandler использует агрегацию объектов "Транспортный Справочник" и "Визуализатор Карты"
     const TransportCatalogue& catalogue_;
-    const MapRenderer& renderer_;
+    MapRenderer& renderer_;
     
     json::Dict GetRequestResponce(int id,
         const std::string& type,

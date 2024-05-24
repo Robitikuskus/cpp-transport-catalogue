@@ -20,13 +20,6 @@ void TransportCatalogue::AddRoute(const std::string& name,
         route_by_stop_[stop].insert(&routes_.back());
     }
 
-    // if (!is_roundtrip) {
-    //     for (auto s = stops.rbegin() + 1; s != stops.rend(); ++s) {
-    //         auto stop = stop_by_name_.at(*s);
-    //         routes_.back().stops.push_back(stop);
-    //     }
-    // }
-
     route_by_name_[routes_.back().name] = &routes_.back();
 }
 
@@ -92,4 +85,48 @@ std::unordered_set<Route*> TransportCatalogue::GetRoutesByStop(const Stop* stop)
         return {};
 
     return route_by_stop_.at(stop_by_name_.at(stop->name));
+}
+
+std::optional<RouteStat> TransportCatalogue::GetRouteStat(std::string_view route_name) const noexcept {
+    RouteStat stat;
+    auto route = GetRoute(route_name);
+
+    if (route == nullptr) {
+        return std::nullopt;
+    }
+     
+    stat.stop_count = static_cast<int>(route->stops.size());
+    if (!route->is_roundtrip) {
+        stat.stop_count = stat.stop_count * 2 - 1;
+    }
+    
+    std::unordered_set<std::string_view> unique_stops;
+    for (const auto& stop : route->stops) {
+        unique_stops.emplace(stop->name);
+    }
+    stat.unique_stop_count = static_cast<int>(unique_stops.size());
+    
+    double fact_route_length = 0, geo_route_length = 0;
+    for (size_t i = 0; i < route->stops.size() - 1; ++i) {
+        auto current_stop = route->stops[i];
+        auto next_stop = route->stops[i + 1];
+        
+        fact_route_length += geo::ComputeDistance(current_stop->coordinates, next_stop->coordinates);
+        geo_route_length += GetStopsDistance(current_stop->name, next_stop->name);
+    }
+
+    if (!route->is_roundtrip) {
+        for (size_t i = route->stops.size() - 1; i > 0; --i) {
+            auto current_stop = route->stops[i];
+            auto next_stop = route->stops[i - 1];
+            
+            fact_route_length += geo::ComputeDistance(current_stop->coordinates, next_stop->coordinates);
+            geo_route_length += GetStopsDistance(current_stop->name, next_stop->name);
+        }
+    }
+
+    stat.route_length = geo_route_length;
+    stat.curvature = geo_route_length / fact_route_length;
+
+    return stat;
 }

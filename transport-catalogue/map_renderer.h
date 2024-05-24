@@ -91,9 +91,17 @@ class MapRenderer {
 public:
     MapRenderer() = default;
     MapRenderer(const json::Dict& settings);
+
     void SetRenderSettings(const json::Dict& settings);
-    void Render(const TransportCatalogue& catalogue, std::ostream& out) const;
+
+    void RenderRoutesLines(const TransportCatalogue& catalogue, SphereProjector& projector);
+    void RenderRoutesNames(const TransportCatalogue& catalogue, SphereProjector& projector);
+    void RenderStopsPoints(const TransportCatalogue& catalogue, SphereProjector& projector);
+    void RenderStopsNames(const TransportCatalogue& catalogue, SphereProjector& projector);
+    void RenderAll(const TransportCatalogue& catalogue, std::ostream& out);
+    void Render(std::ostream& out) const;
 
 private:
     RenderSettings settings_;
+    svg::Document document_;
 };

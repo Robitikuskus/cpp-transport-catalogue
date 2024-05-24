@@ -75,9 +75,11 @@ void RenderSettings::SetRenderSettings(const json::Dict& settings) {
     }
 }
 
-void MapRenderer::Render(const TransportCatalogue& catalogue, std::ostream& out) const {
-    svg::Document document;
+void MapRenderer::Render(std::ostream& out) const {
+    document_.Render(out);
+}
 
+void MapRenderer::RenderAll(const TransportCatalogue& catalogue, std::ostream& out) {
     struct CoordinatesHash {
         std::size_t operator()(const geo::Coordinates& coords) const {
             return std::hash<double>()(coords.lat) ^ std::hash<double>()(coords.lng);
@@ -85,6 +87,30 @@ void MapRenderer::Render(const TransportCatalogue& catalogue, std::ostream& out)
     };
 
     std::unordered_set<geo::Coordinates, CoordinatesHash> stops_coordinates;
+    for (const auto& stop_name : catalogue.GetStopsNames()) {
+        auto stop = catalogue.GetStop(stop_name);
+        if (!catalogue.GetRoutesByStop(stop).empty()) {
+            stops_coordinates.emplace(stop->coordinates);
+        }
+    }
+    
+    SphereProjector projector(
+        stops_coordinates.begin(), 
+        stops_coordinates.end(),
+        settings_.width_,
+        settings_.height_,
+        settings_.padding_
+    );
+
+    RenderRoutesLines(catalogue, projector);
+    RenderRoutesNames(catalogue, projector);
+    RenderStopsPoints(catalogue, projector);
+    RenderStopsNames(catalogue, projector);
+
+    document_.Render(out);
+}
+
+void MapRenderer::RenderRoutesLines(const TransportCatalogue& catalogue, SphereProjector& pr) {
     std::vector<std::vector<geo::Coordinates>> routes_coordinates;
 
     auto routes_names = catalogue.GetRoutesNames();
@@ -94,7 +120,6 @@ void MapRenderer::Render(const TransportCatalogue& catalogue, std::ostream& out)
         auto route = catalogue.GetRoute(route_name);
         routes_coordinates.emplace_back(std::vector<geo::Coordinates>());
         for (const auto& stop : route->stops) {
-            stops_coordinates.emplace(stop->coordinates);
             routes_coordinates.back().emplace_back(stop->coordinates);
         }
 
@@ -104,14 +129,6 @@ void MapRenderer::Render(const TransportCatalogue& catalogue, std::ostream& out)
             }
         }
     }
-
-    SphereProjector pr(
-        stops_coordinates.begin(),
-        stops_coordinates.end(),
-        settings_.width_,
-        settings_.height_,
-        settings_.padding_
-    );
 
     size_t color_index = 0;
     size_t size = settings_.color_palette_.size();
@@ -126,10 +143,15 @@ void MapRenderer::Render(const TransportCatalogue& catalogue, std::ostream& out)
         for (const auto& coord : coords) {
             line.AddPoint(pr(coord));
         }
-        document.Add(line);
+        document_.Add(line);
     }
+}
 
-    color_index = 0;
+void MapRenderer::RenderRoutesNames(const TransportCatalogue& catalogue, SphereProjector& pr) {
+    auto routes_names = catalogue.GetRoutesNames();
+    std::sort(routes_names.begin(), routes_names.end());
+
+    size_t color_index = 0, size = settings_.color_palette_.size();
     for (auto& rn : routes_names) {
         auto route = catalogue.GetRoute(rn);
 
@@ -157,37 +179,44 @@ void MapRenderer::Render(const TransportCatalogue& catalogue, std::ostream& out)
         route_name_stroke.SetPosition(start_coords);
         route_name.SetPosition(start_coords);
 
-        document.Add(route_name_stroke);
-        document.Add(route_name);
+        document_.Add(route_name_stroke);
+        document_.Add(route_name);
 
         if (!route->is_roundtrip && route->stops.front() != route->stops.back()) {
             auto end_coords = pr(route->stops.back()->coordinates);
             route_name_stroke.SetPosition(end_coords);
             route_name.SetPosition(end_coords);
 
-            document.Add(route_name_stroke);
-            document.Add(route_name);
+            document_.Add(route_name_stroke);
+            document_.Add(route_name);
         }
     }
+}
 
+void MapRenderer::RenderStopsPoints(const TransportCatalogue& catalogue, SphereProjector& pr) {
     auto stops_names = catalogue.GetStopsNames();
     std::sort(stops_names.begin(), stops_names.end());
 
     for (const auto& stop_name : stops_names) {
         auto stop = catalogue.GetStop(stop_name);
         if (!catalogue.GetRoutesByStop(stop).empty()) {
-            document.Add(svg::Circle()
+            document_.Add(svg::Circle()
                 .SetCenter(pr(stop->coordinates))
                 .SetRadius(settings_.stop_radius_)
                 .SetFillColor("white")
             );
         }
     }
+}
+
+void MapRenderer::RenderStopsNames(const TransportCatalogue& catalogue, SphereProjector& pr) {
+    auto stops_names = catalogue.GetStopsNames();
+    std::sort(stops_names.begin(), stops_names.end());
 
     for (const auto& stop_name : stops_names) {
         auto stop = catalogue.GetStop(stop_name);
         if (!catalogue.GetRoutesByStop(stop).empty()) {
-            document.Add(svg::Text()
+            document_.Add(svg::Text()
                 .SetFillColor(settings_.underlayer_color_)
                 .SetStrokeColor(settings_.underlayer_color_)
                 .SetStrokeWidth(settings_.underlayer_width_)
@@ -199,7 +228,7 @@ void MapRenderer::Render(const TransportCatalogue& catalogue, std::ostream& out)
                 .SetFontFamily("Verdana")
                 .SetData(stop->name)
             );
-            document.Add(svg::Text()
+            document_.Add(svg::Text()
                 .SetFillColor("black")
                 .SetPosition(pr(stop->coordinates))
                 .SetOffset(settings_.stop_label_offset_)
@@ -209,6 +238,4 @@ void MapRenderer::Render(const TransportCatalogue& catalogue, std::ostream& out)
             );
         }
     }
-
-    document.Render(out);
 }

@@ -27,3 +27,10 @@ struct Route {
 
     bool operator==(std::string_view other) const;
 };
+
+struct RouteStat {
+    double curvature;
+    double route_length;
+    int stop_count;
+    int unique_stop_count;
+};

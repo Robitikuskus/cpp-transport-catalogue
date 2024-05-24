@@ -5,53 +5,13 @@
 #include <iostream>
 #include <sstream>
 
-RequestHandler::RequestHandler(const TransportCatalogue& catalogue, const MapRenderer& renderer)
+RequestHandler::RequestHandler(const TransportCatalogue& catalogue, MapRenderer& renderer)
     : catalogue_(catalogue)
     , renderer_(renderer) {
 }
 
-std::optional<RequestHandler::RouteStat> RequestHandler::GetRouteStat(const std::string_view& route_name) const {
-    RouteStat stat;
-    auto route = catalogue_.GetRoute(route_name);
-
-    if (route == nullptr) {
-        return std::nullopt;
-    }
-     
-    stat.stop_count = static_cast<int>(route->stops.size());
-    if (!route->is_roundtrip) {
-        stat.stop_count = stat.stop_count * 2 - 1;
-    }
-    
-    std::unordered_set<std::string_view> unique_stops;
-    for (const auto& stop : route->stops) {
-        unique_stops.emplace(stop->name);
-    }
-    stat.unique_stop_count = static_cast<int>(unique_stops.size());
-    
-    double fact_route_length = 0, geo_route_length = 0;
-    for (size_t i = 0; i < route->stops.size() - 1; ++i) {
-        auto current_stop = route->stops[i];
-        auto next_stop = route->stops[i + 1];
-        
-        fact_route_length += geo::ComputeDistance(current_stop->coordinates, next_stop->coordinates);
-        geo_route_length += catalogue_.GetStopsDistance(current_stop->name, next_stop->name);
-    }
-
-    if (!route->is_roundtrip) {
-        for (size_t i = route->stops.size() - 1; i > 0; --i) {
-            auto current_stop = route->stops[i];
-            auto next_stop = route->stops[i - 1];
-            
-            fact_route_length += geo::ComputeDistance(current_stop->coordinates, next_stop->coordinates);
-            geo_route_length += catalogue_.GetStopsDistance(current_stop->name, next_stop->name);
-        }
-    }
-
-    stat.route_length = geo_route_length;
-    stat.curvature = geo_route_length / fact_route_length;
-
-    return stat;
+std::optional<RouteStat> RequestHandler::GetRouteStat(const std::string_view& route_name) const {
+    return catalogue_.GetRouteStat(route_name);
 }
 
 std::unordered_set<Route*> RequestHandler::GetRoutesByStop(const std::string_view& stop_name) const {
@@ -92,7 +52,7 @@ json::Dict RequestHandler::GetRequestResponce(int id,
         }
     } else if (type == "Map") {
         std::ostringstream stream;
-        renderer_.Render(catalogue_, stream);
+        renderer_.RenderAll(catalogue_, stream);
 
         dict.emplace("map", stream.str());
     }
@@ -119,6 +79,6 @@ void RequestHandler::PrintRequestsResponce(const json::Array& requests, std::ost
     json::Print(GetRequestsResponce(requests), os);
 }
 
-void RequestHandler::PrintMap(std::ostream& os) const {
-    renderer_.Render(catalogue_, os);
+void RequestHandler::PrintMap(std::ostream& os) {
+    renderer_.RenderAll(catalogue_, os);
 }

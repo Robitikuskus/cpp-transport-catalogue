@@ -4,8 +4,9 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include <unordered_map>
 #include <memory>
+#include <optional>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "geo.h"
@@ -29,6 +30,7 @@ public:
     std::vector<std::string_view> GetRoutesNames() const noexcept;
 
     double GetStopsDistance(std::string_view first, std::string_view second) const noexcept;
+    std::optional<RouteStat> GetRouteStat(std::string_view route_name) const noexcept;
 
     std::unordered_set<Route*> GetRoutesByStop(const Stop* stop) const;
 
