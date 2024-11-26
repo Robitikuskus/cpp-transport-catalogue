@@ -17,29 +17,29 @@ void JsonReader::FillCatalogue(TransportCatalogue& catalogue) {
 }
 
 const json::Array& JsonReader::GetStatRequests() const {
-    return document_.GetRoot().AsMap().at("stat_requests").AsArray();
+    return document_.GetRoot().AsDict().at("stat_requests").AsArray();
 }
 
 const json::Dict& JsonReader::GetRenderSettings() const {
-    return document_.GetRoot().AsMap().at("render_settings").AsMap();
+    return document_.GetRoot().AsDict().at("render_settings").AsDict();
 }
 
 void JsonReader::AddStops(TransportCatalogue& catalogue) {
-    for (const auto& request : document_.GetRoot().AsMap().at("base_requests").AsArray()) {
-        if (request.AsMap().at("type").AsString() == "Stop") {
-            auto name = request.AsMap().at("name").AsString();
-            auto lat = request.AsMap().at("latitude").AsDouble();
-            auto lng = request.AsMap().at("longitude").AsDouble();
+    for (const auto& request : document_.GetRoot().AsDict().at("base_requests").AsArray()) {
+        if (request.AsDict().at("type").AsString() == "Stop") {
+            auto name = request.AsDict().at("name").AsString();
+            auto lat = request.AsDict().at("latitude").AsDouble();
+            auto lng = request.AsDict().at("longitude").AsDouble();
             catalogue.AddStop(name, geo::Coordinates{lat, lng});
         }
     }
 }
 
 void JsonReader::AddStopsDistances(TransportCatalogue& catalogue) {
-    for (const auto& request : document_.GetRoot().AsMap().at("base_requests").AsArray()) {
-        if (request.AsMap().at("type").AsString() == "Stop") {
-            auto name = request.AsMap().at("name").AsString();
-            for (auto& [stop, distance] : request.AsMap().at("road_distances").AsMap()) {
+    for (const auto& request : document_.GetRoot().AsDict().at("base_requests").AsArray()) {
+        if (request.AsDict().at("type").AsString() == "Stop") {
+            auto name = request.AsDict().at("name").AsString();
+            for (auto& [stop, distance] : request.AsDict().at("road_distances").AsDict()) {
                 catalogue.SetStopsDistance(name, stop, distance.AsInt());
             }
         }
@@ -47,11 +47,11 @@ void JsonReader::AddStopsDistances(TransportCatalogue& catalogue) {
 }
 
 void JsonReader::AddRoutes(TransportCatalogue& catalogue) {
-    for (const auto& request : document_.GetRoot().AsMap().at("base_requests").AsArray()) {
-        if (request.AsMap().at("type").AsString() == "Bus") {
-            auto name = request.AsMap().at("name").AsString();
-            auto stops = request.AsMap().at("stops").AsArray();
-            auto is_roundtrip = request.AsMap().at("is_roundtrip").AsBool();
+    for (const auto& request : document_.GetRoot().AsDict().at("base_requests").AsArray()) {
+        if (request.AsDict().at("type").AsString() == "Bus") {
+            auto name = request.AsDict().at("name").AsString();
+            auto stops = request.AsDict().at("stops").AsArray();
+            auto is_roundtrip = request.AsDict().at("is_roundtrip").AsBool();
 
             vector<string_view> stops_names;
             for (auto& stop : stops) {

@@ -20,6 +20,11 @@ bool Coordinates::operator!=(const Coordinates& other) const {
     return !(*this == other);
 }
 
+std::ostream& operator<<(std::ostream& os, const Coordinates& c) {
+    os << c.lat << ", " << c.lng;
+    return os;
+}
+
 double ComputeDistance(Coordinates from, Coordinates to) {
     using namespace std;
     const double dr = M_PI / 180.0;

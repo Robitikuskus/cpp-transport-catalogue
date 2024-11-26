@@ -14,13 +14,8 @@ struct Coordinates {
     bool operator==(const Coordinates& other) const;
     bool operator!=(const Coordinates& other) const;
 
-    friend std::ostream& operator<<(std::ostream& os, const Coordinates& c) {
-        os << c.lat << ", " << c.lng;
-        return os;
-    }
+    friend std::ostream& operator<<(std::ostream& os, const Coordinates& c);
 };
-
-
 
 double ComputeDistance(Coordinates from, Coordinates to);
 

@@ -27,6 +27,7 @@ struct Rgba {
     uint8_t red = 0, green = 0, blue = 0;
     double opacity = 1;
 };
+
 using Color = std::variant<std::monostate, std::string, Rgb, Rgba>;
 
 struct ColorPrinter {
@@ -77,10 +78,6 @@ struct Offset {
     double dy = 0;
 };
 
-/*
- * Вспомогательная структура, хранящая контекст для вывода SVG-документа с отступами.
- * Хранит ссылку на поток вывода, текущее значение и шаг отступа при выводе элемента
- */
 struct RenderContext {
     RenderContext(std::ostream& out_)
         : out(out_) {
@@ -109,7 +106,6 @@ struct RenderContext {
 
 class Object;
 
-// Интерфейс для доступа к контейнеру SVG-объектов
 class ObjectContainer {
 public:
     virtual ~ObjectContainer() = default;
@@ -125,18 +121,12 @@ private:
     std::vector<std::unique_ptr<Object>> objects_;
 };
 
-// Интерфейс унифицирует работу с объектами, которые можно нарисовать
 class Drawable {
 public:
     virtual void Draw(ObjectContainer& container) const = 0;
     virtual ~Drawable() = default;
 };
 
-/*
- * Абстрактный базовый класс Object служит для унифицированного хранения
- * конкретных тегов SVG-документа
- * Реализует паттерн "Шаблонный метод" для вывода содержимого тега
- */
 class Object {
 public:
     void Render(const RenderContext& context) const;
@@ -147,38 +137,29 @@ private:
     virtual void RenderObject(const RenderContext& context) const = 0;
 };
 
-/*
-Класс для дополнительных параметров фигуры.
-Таких как цвет фигуры, ее границы и тд.
-*/
 template <typename Owner>
 class PathProps {
 public:
-    // Задает цвет фигуры
     Owner& SetFillColor(Color color) {
         fill_color_ = std::move(color);
         return AsOwner();
     }
 
-    // Задает цвет границы
     Owner& SetStrokeColor(Color color) {
         stroke_color_ = std::move(color);
         return AsOwner();
     }
 
-    // Задает ширину границы
     Owner& SetStrokeWidth(double width) {
         stroke_width_ = width;
         return AsOwner();
     }
 
-    // Задает отступ границы
     Owner& SetStrokeLineCap(StrokeLineCap cap) {
         stroke_line_cap_ = cap;
         return AsOwner();
     }
 
-    // Задает отступ границы
     Owner& SetStrokeLineJoin(StrokeLineJoin join) {
         stroke_line_join_ = join;
         return AsOwner();
@@ -187,7 +168,6 @@ public:
 protected:
     ~PathProps() = default;
 
-    // Выводит в поток общие для всех путей атрибуты fill и stroke
     void RenderAttrs(std::ostream& out) const {
         using namespace std::literals;
 
@@ -210,8 +190,6 @@ protected:
 
 private:
     Owner& AsOwner() {
-        // static_cast безопасно преобразует *this к Owner&,
-        // если класс Owner — наследник PathProps
         return static_cast<Owner&>(*this);
     }
 
@@ -222,18 +200,11 @@ private:
     std::optional<double> stroke_width_;
 };
 
-/*
- * Класс Circle моделирует элемент <circle> для отображения круга
- * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle
- */
 class Circle final : public Object, public PathProps<Circle> {
 public:
     Circle() = default;
 
-    // Задает координаты центра
     Circle& SetCenter(Point center);
-
-    // Задает значение радиуса
     Circle& SetRadius(double radius);
 
 private:
@@ -243,15 +214,10 @@ private:
     double radius_ = 1.0;
 };
 
-/*
- * Класс Polyline моделирует элемент <polyline> для отображения ломаных линий
- * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/polyline
- */
 class Polyline final : public Object, public PathProps<Polyline> {
 public:
     Polyline() = default;
 
-    // Добавляет очередную вершину к ломаной линии
     Polyline& AddPoint(Point point);
 
     void RenderObject(const RenderContext& context) const override;
@@ -260,30 +226,17 @@ private:
     std::vector<Point> points_;
 };
 
-/*
- * Класс Text моделирует элемент <text> для отображения текста
- * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/text
- */
 class Text final : public Object, public PathProps<Text> {
 public:
     Text() = default;
 
-    // Задаёт координаты опорной точки (атрибуты x и y)
     Text& SetPosition(Point pos);
-
-    // Задаёт смещение относительно опорной точки (атрибуты dx, dy)
     Text& SetOffset(Point offset);
 
-    // Задаёт размеры шрифта (атрибут font-size)
     Text& SetFontSize(uint32_t size);
-
-    // Задаёт название шрифта (атрибут font-family)
     Text& SetFontFamily(std::string font_family);
-
-    // Задаёт толщину шрифта (атрибут font-weight)
     Text& SetFontWeight(std::string font_weight);
 
-    // Задаёт текстовое содержимое объекта (отображается внутри тега text)
     Text& SetData(std::string data);
 
     void RenderObject(const RenderContext& context) const override;
@@ -301,10 +254,8 @@ class Document : public ObjectContainer {
 public:
     Document() = default;
 
-    // // Добавляет в svg-документ объект-наследник svg::Object
     void AddPtr(std::unique_ptr<Object>&& obj) override;
 
-    // Выводит в ostream svg-представление документа
     void Render(std::ostream& out) const;
 
 private:

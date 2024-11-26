@@ -3,7 +3,7 @@
 Stop::Stop(const std::string& name_, const geo::Coordinates& coordinates_)
     : name(name_), coordinates(coordinates_) {
 }
-    
+
 Stop::Stop(std::string_view name_, const geo::Coordinates& coordinates_)
     : name(name_), coordinates(coordinates_) {
 }

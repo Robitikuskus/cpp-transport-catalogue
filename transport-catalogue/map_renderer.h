@@ -13,8 +13,6 @@ bool IsZero(double value);
 
 class SphereProjector {
 public:
-    // points_begin и points_end задают начало и конец
-    // интервала элементов geo::Coordinates
     template <typename PointInputIt>
     SphereProjector(PointInputIt points_begin, PointInputIt points_end,
                     double max_width, double max_height, double padding)
