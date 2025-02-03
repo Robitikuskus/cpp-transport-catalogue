@@ -9,8 +9,8 @@ namespace json {
 
 Builder::Builder()
     : root_()
-    , nodes_stack_{&root_}
-{}
+    , nodes_stack_{&root_} {
+}
 
 Node Builder::Build() {
     if (!nodes_stack_.empty()) {

@@ -24,6 +24,10 @@ const json::Dict& JsonReader::GetRenderSettings() const {
     return document_.GetRoot().AsDict().at("render_settings").AsDict();
 }
 
+const json::Dict& JsonReader::GetRoutingSettings() const {
+    return document_.GetRoot().AsDict().at("routing_settings").AsDict();
+}
+
 void JsonReader::AddStops(TransportCatalogue& catalogue) {
     for (const auto& request : document_.GetRoot().AsDict().at("base_requests").AsArray()) {
         if (request.AsDict().at("type").AsString() == "Stop") {
@@ -41,6 +45,7 @@ void JsonReader::AddStopsDistances(TransportCatalogue& catalogue) {
             auto name = request.AsDict().at("name").AsString();
             for (auto& [stop, distance] : request.AsDict().at("road_distances").AsDict()) {
                 catalogue.SetStopsDistance(name, stop, distance.AsInt());
+                distances_.push_back(std::make_tuple(name, stop, distance.AsInt()));
             }
         }
     }
@@ -58,7 +63,11 @@ void JsonReader::AddRoutes(TransportCatalogue& catalogue) {
                 stops_names.push_back(stop.AsString());
             }
 
-            catalogue.AddRoute(name, stops_names, is_roundtrip);
+            catalogue.AddBus(name, stops_names, is_roundtrip);
         }
     }
+}
+
+const std::vector<std::tuple<std::string_view, std::string_view, double>>& JsonReader::GetDistances() const {
+    return distances_;
 }

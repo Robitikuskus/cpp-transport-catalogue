@@ -8,31 +8,31 @@
 #include <iostream>
 #include <iomanip>
 
-void PrintRoute(const Route* route, const TransportCatalogue& tc, std::ostream& os) {
-    if (route == nullptr) {
+void PrintBus(const Bus* bus, const TransportCatalogue& tc, std::ostream& os) {
+    if (bus == nullptr) {
         os << "not found";
         return;
     }
-     
-    size_t stops_count = route->stops.size();
-    os << stops_count << " stops on route, ";
+    
+    size_t stops_count = bus->stops.size();
+    os << stops_count << " stops on bus, ";
     
     std::unordered_set<std::string_view> unique_stops;
-    for (const auto& stop : route->stops) {
+    for (const auto& stop : bus->stops) {
         unique_stops.emplace(stop->name);
     }
     os << unique_stops.size() << " unique stops, ";
     
-    double fact_route_length = 0, geo_route_length = 0;
-    for (size_t i = 0; i < route->stops.size() - 1; ++i) {
-        auto current_stop = route->stops[i];
-        auto next_stop = route->stops[i + 1];
+    double fact_bus_length = 0, geo_bus_length = 0;
+    for (size_t i = 0; i < bus->stops.size() - 1; ++i) {
+        auto current_stop = bus->stops[i];
+        auto next_stop = bus->stops[i + 1];
         
-        fact_route_length += geo::ComputeDistance(current_stop->coordinates, next_stop->coordinates);
-        geo_route_length += tc.GetStopsDistance(current_stop->name, next_stop->name);
+        fact_bus_length += geo::ComputeDistance(current_stop->coordinates, next_stop->coordinates);
+        geo_bus_length += tc.GetStopsDistance(current_stop->name, next_stop->name);
     }
-    os << geo_route_length << " route length, ";
-    os << geo_route_length / fact_route_length << " curvature";
+    os << geo_bus_length << " bus length, ";
+    os << geo_bus_length / fact_bus_length << " curvature";
 }
 
 void PrintStop(const Stop* stop, const TransportCatalogue& tc, std::ostream& os) {
@@ -41,21 +41,21 @@ void PrintStop(const Stop* stop, const TransportCatalogue& tc, std::ostream& os)
         return;
     }
     
-    auto routes = tc.GetRoutesByStop(stop);
-    if (routes.empty()) {
+    auto buss = tc.GetBusesByStop(stop);
+    if (buss.empty()) {
         os << "no buses";
         return;
     }
 
-    std::vector<std::string_view> unique_routes;
-    unique_routes.reserve(routes.size());
-    for (const auto& route : routes)
-        unique_routes.push_back(route->name);
-    std::sort(unique_routes.begin(), unique_routes.end());
+    std::vector<std::string_view> unique_buss;
+    unique_buss.reserve(buss.size());
+    for (const auto& bus : buss)
+        unique_buss.push_back(bus->name);
+    std::sort(unique_buss.begin(), unique_buss.end());
 
     os << "buses ";
-    for (const auto& route : unique_routes)
-        os << route << " ";
+    for (const auto& bus : unique_buss)
+        os << bus << " ";
 }
 
 void ParseAndPrintStat(const TransportCatalogue& tansport_catalogue,
@@ -71,8 +71,8 @@ void ParseAndPrintStat(const TransportCatalogue& tansport_catalogue,
 
     output << command << " " << name << ": ";
     if (command == "Bus") {
-        auto res = tansport_catalogue.GetRoute(name);
-        PrintRoute(res, tansport_catalogue, output);
+        auto res = tansport_catalogue.GetBus(name);
+        PrintBus(res, tansport_catalogue, output);
     } else if (command == "Stop") {
         auto res = tansport_catalogue.GetStop(name);
         PrintStop(res, tansport_catalogue, output);

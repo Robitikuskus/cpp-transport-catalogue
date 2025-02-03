@@ -153,7 +153,7 @@ void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) 
 
     for (auto& [command, id, description] : commands_) {
         if (command == "Bus") {
-            catalogue.AddRoute(id, ParseRoute(description));
+            catalogue.AddBus(id, ParseRoute(description));
         }
     }
 }

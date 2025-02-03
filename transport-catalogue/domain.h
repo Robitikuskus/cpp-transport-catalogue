@@ -17,20 +17,20 @@ struct Stop {
     bool operator==(std::string_view other) const;
 };
 
-struct Route {
+struct Bus {
     std::string name;
     std::vector<Stop*> stops;
     bool is_roundtrip = false;
 
-    Route() = default;
-    Route(const std::string& name_);
+    Bus() = default;
+    Bus(const std::string& name_);
 
     bool operator==(std::string_view other) const;
 };
 
-struct RouteStat {
+struct BusStat {
     double curvature;
-    double route_length;
+    double bus_length;
     int stop_count;
     int unique_stop_count;
 };

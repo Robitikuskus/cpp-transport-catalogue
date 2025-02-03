@@ -12,10 +12,10 @@ bool Stop::operator==(std::string_view other) const {
     return name == other;
 }
 
-Route::Route(const std::string& name_)
+Bus::Bus(const std::string& name_)
     : name(name_) {
 }
 
-bool Route::operator==(std::string_view other) const {
+bool Bus::operator==(std::string_view other) const {
     return name == other;
 }

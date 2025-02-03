@@ -92,8 +92,8 @@ public:
 
     void SetRenderSettings(const json::Dict& settings);
 
-    void RenderRoutesLines(const TransportCatalogue& catalogue, SphereProjector& projector);
-    void RenderRoutesNames(const TransportCatalogue& catalogue, SphereProjector& projector);
+    void RenderBusesLines(const TransportCatalogue& catalogue, SphereProjector& projector);
+    void RenderBusesNames(const TransportCatalogue& catalogue, SphereProjector& projector);
     void RenderStopsPoints(const TransportCatalogue& catalogue, SphereProjector& projector);
     void RenderStopsNames(const TransportCatalogue& catalogue, SphereProjector& projector);
     void RenderAll(const TransportCatalogue& catalogue, std::ostream& out);
