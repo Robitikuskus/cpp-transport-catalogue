@@ -85,51 +85,27 @@ json::Node RequestHandler::GetRouteRquestResponce(int id, Route route) const {
     if (auto built_route = router_.BuildRoute(route.from, route.to)) {
         json::Array items;
 
-        items.push_back(
-            json::Builder{}
-                .StartDict()
-                    .Key("stop_name"s).Value(route.from.data())
-                    .Key("time"s).Value(router_.GetBusWaitingTime())
-                    .Key("type"s).Value("Wait"s)
-                .EndDict()
-            .Build()
-        );
-
-        double total_time = router_.GetBusWaitingTime();
-
-        for (size_t i = 1; i < built_route->edges.size(); ++i) {
-            auto edge = built_route->edges[i - 1];
-
-            auto [from_sv, to_sv] = router_.GetStopsByEdgeId(edge);
-            std::string from = std::string(from_sv);
-            std::string to = std::string(to_sv);
-
-            if (std::optional<std::string_view> bus = router_.GetBusByEdgeId(edge)) {
-                total_time += router_.GetEdgeWeight(edge);
-
-                if (from.ends_with(" wait"sv)) from.erase(from.size() - 5);
-                if (to.ends_with(" wait"sv)) to.erase(to.size() - 5);
-                int span_count = catalogue_.GetSpanCount(*bus, from, to);
+        for (auto item : built_route->items) {
+            if (std::holds_alternative<RouteInfo::WaitItem>(item)) {
+                auto wait_item = std::get<RouteInfo::WaitItem>(item);
                 items.push_back(
                     json::Builder{}
                         .StartDict()
-                            .Key("bus"s).Value(bus->data())
-                            .Key("span_count"s).Value(static_cast<int>(span_count))
-                            .Key("time"s).Value(router_.GetEdgeWeight(edge))
-                            .Key("type"s).Value("Bus"s)
+                            .Key("stop_name"s).Value(wait_item.stop.data())
+                            .Key("time"s).Value(wait_item.time.count())
+                            .Key("type"s).Value("Wait"s)
                         .EndDict()
                     .Build()
                 );
-            } else if (from.ends_with(" wait"sv)) {
-                total_time += router_.GetBusWaitingTime();
-
-                from.erase(from.size() - 5);
+            } else if (std::holds_alternative<RouteInfo::BusItem>(item)) {
+                auto bus_item = std::get<RouteInfo::BusItem>(item);
                 items.push_back(
                     json::Builder{}
                         .StartDict()
-                            .Key("stop_name"s).Value(from.data())
-                            .Key("time"s).Value(router_.GetBusWaitingTime())
-                            .Key("type"s).Value("Wait"s)
+                            .Key("bus"s).Value(bus_item.bus.data())
+                            .Key("span_count"s).Value(static_cast<int>(bus_item.span_count))
+                            .Key("time"s).Value(bus_item.time.count())
+                            .Key("type"s).Value("Bus"s)
                         .EndDict()
                     .Build()
                 );
@@ -140,7 +116,7 @@ json::Node RequestHandler::GetRouteRquestResponce(int id, Route route) const {
             .StartDict()
                 .Key("items").Value(items)
                 .Key("request_id").Value(id)
-                .Key("total_time").Value(total_time)
+                .Key("total_time").Value(built_route->total_time.count())
             .EndDict()
         .Build();
     }

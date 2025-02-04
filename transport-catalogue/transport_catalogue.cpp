@@ -145,7 +145,7 @@ std::optional<BusStat> TransportCatalogue::GetBusStat(std::string_view bus_name)
     return stat;
 }
 
-int TransportCatalogue::GetSpanCount(
+size_t TransportCatalogue::GetSpanCount(
     std::string_view bus_name,
     std::string_view from_stop,
     std::string_view to_stop
@@ -155,34 +155,29 @@ int TransportCatalogue::GetSpanCount(
         return 0;
     }
 
-    int from = -1;
-    int to = -1;
+    size_t from = 0, to = 0;
 
     if (bus->is_roundtrip) {
         for (size_t i = 0; i < bus->stops.size() - 1; ++i) {
             if (bus->stops[i]->name == from_stop) {
-                from = static_cast<int>(i);
+                from = i;
             }
         }
         for (size_t i = 1; i < bus->stops.size(); ++i) {
             if (bus->stops[i]->name == to_stop) {
-                to = static_cast<int>(i);
+                to = i;
                 break;
             }
         }
     } else {
         for (size_t i = 0; i < bus->stops.size(); ++i) {
             if (bus->stops[i]->name == from_stop) {
-                from = static_cast<int>(i);
+                from = i;
             }
             if (bus->stops[i]->name == to_stop) {
-                to = static_cast<int>(i);
+                to = i;
             }
         }
-    }
-
-    if (from == -1 || to == -1) {
-        return 0;
     }
 
     return to - from;

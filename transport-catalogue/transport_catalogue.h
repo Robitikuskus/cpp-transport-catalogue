@@ -39,7 +39,7 @@ public:
     std::unordered_set<Bus*> GetBusesByStop(const Stop* stop) const;
     std::vector<std::string_view> GetStopsByBus(std::string_view bus) const;
 
-    int GetSpanCount(
+    size_t GetSpanCount(
         std::string_view bus_name,
         std::string_view from_stop,
         std::string_view to_stop

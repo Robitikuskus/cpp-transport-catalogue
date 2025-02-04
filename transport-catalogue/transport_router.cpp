@@ -6,12 +6,11 @@ TransportRouter::TransportRouter(const TransportCatalogue& catalogue, const json
     , graph_(catalogue.GetStopsCount() * 2)
 {
     using namespace std::literals;
-    size_t edge_id = 0;
 
     std::vector<std::string_view> stops = catalogue.GetStopsNames();
 
-    waiting_time_ = settings.at("bus_wait_time"s).AsDouble();
-    double bus_velocity = settings.at("bus_velocity"s).AsDouble();
+    waiting_time_ = Minutes(settings.at("bus_wait_time"s).AsDouble());
+    bus_velocity_ = settings.at("bus_velocity"s).AsDouble();
 
     for (size_t i = 0; i < catalogue.GetStopsCount() * 2; i += 2) {
         stop_index_by_name_[stops[i / 2].data()] = i + 1;
@@ -21,8 +20,8 @@ TransportRouter::TransportRouter(const TransportCatalogue& catalogue, const json
         stop_index_by_name_[wait] = i;
         stop_name_by_index_[i] = wait;
 
-        graph_.AddEdge(graph::Edge<double>{i, i + 1, waiting_time_});
-        ++edge_id;
+        graph_.AddEdge(graph::Edge{i, i + 1, waiting_time_});
+        ++edge_id_;
     }
 
     for (auto bus : catalogue_.GetBusesNames()) {
@@ -35,12 +34,7 @@ TransportRouter::TransportRouter(const TransportCatalogue& catalogue, const json
                     const auto& to = catalogue_.GetBus(bus)->stops[j]->name;
 
                     distance += catalogue_.GetStopsDistance(prev, to);
-                    graph_.AddEdge(graph::Edge<double>{
-                        GetStopIndexByName(from),
-                        GetStopIndexByName(to) - 1,
-                        distance / 1000 / bus_velocity * 60}
-                    );
-                    bus_by_edge_id_[edge_id++] = bus;
+                    AddEdge(from, to, distance, bus);
                 }
             }
         } else {
@@ -52,12 +46,7 @@ TransportRouter::TransportRouter(const TransportCatalogue& catalogue, const json
                     const auto& to = catalogue_.GetBus(bus)->stops[j]->name;
 
                     distance += catalogue_.GetStopsDistance(prev, to);
-                    graph_.AddEdge(graph::Edge<double>{
-                        GetStopIndexByName(from),
-                        GetStopIndexByName(to) - 1,
-                        distance / 1000 / bus_velocity * 60}
-                    );
-                    bus_by_edge_id_[edge_id++] = bus;
+                    AddEdge(from, to, distance, bus);
                 }
             }
             for (int i = static_cast<int>(catalogue_.GetBus(bus)->stops.size()) - 1; i >= 0; --i) {
@@ -68,12 +57,7 @@ TransportRouter::TransportRouter(const TransportCatalogue& catalogue, const json
                     const auto& to = catalogue_.GetBus(bus)->stops[static_cast<size_t>(j)]->name;
 
                     distance += catalogue_.GetStopsDistance(prev, to);
-                    graph_.AddEdge(graph::Edge<double>{
-                        GetStopIndexByName(from),
-                        GetStopIndexByName(to) - 1,
-                        distance / 1000 / bus_velocity * 60}
-                    );
-                    bus_by_edge_id_[edge_id++] = bus;
+                    AddEdge(from, to, distance, bus);
                 }
             }
         }
@@ -82,8 +66,80 @@ TransportRouter::TransportRouter(const TransportCatalogue& catalogue, const json
     router_.emplace(graph_);
 }
 
-std::optional<graph::Router<double>::RouteInfo> TransportRouter::BuildRoute(std::string_view stop1, std::string_view stop2) const {
-    return router_->BuildRoute(GetStopIndexByName(stop1.data()), GetStopIndexByName(stop2.data()));
+void TransportRouter::AddEdge(
+    std::string_view from,
+    std::string_view to,
+    double distance,
+    std::string_view bus
+) {
+    graph_.AddEdge(
+        graph::Edge{
+            GetStopIndexByName(from.data()),
+            GetStopIndexByName(to.data()) - 1,
+            Minutes{distance / 1000 / bus_velocity_ * 60}
+        }
+    );
+    bus_by_edge_id_[edge_id_++] = bus;
+}
+
+std::optional<RouteInfo> TransportRouter::BuildRoute(std::string_view stop_from, std::string_view stop_to) const {
+    if (stop_from == stop_to) {
+        return RouteInfo{};
+    }
+
+    auto stop_from_index = GetStopIndexByName(stop_from.data());
+    auto stop_to_index = GetStopIndexByName(stop_to.data());
+
+    if (auto built_route = router_->BuildRoute(stop_from_index, stop_to_index)) {
+        using namespace std::literals;
+
+        RouteInfo route;
+
+        route.items.push_back(
+            RouteInfo::WaitItem{
+                .stop = stop_from,
+                .time = GetBusWaitingTime(),
+            }
+        );
+
+        Minutes total_time = GetBusWaitingTime();
+
+        for (size_t i = 1; i < built_route->edges.size(); ++i) {
+            auto edge = built_route->edges[i - 1];
+
+            auto [from_sv, to_sv] = GetStopsByEdgeId(edge);
+            std::string from = std::string(from_sv);
+            std::string to = std::string(to_sv);
+
+            if (std::optional<std::string_view> bus = GetBusByEdgeId(edge)) {
+                total_time += GetEdgeWeight(edge);
+
+                if (from.ends_with(" wait"s)) from.erase(from.size() - 5);
+                if (to.ends_with(" wait"s)) to.erase(to.size() - 5);
+                route.items.push_back(
+                    RouteInfo::BusItem{
+                        .bus = *bus,
+                        .span_count = catalogue_.GetSpanCount(*bus, from, to),
+                        .time = GetEdgeWeight(edge)
+                    }
+                );
+            } else if (from.ends_with(" wait"s)) {
+                total_time += GetBusWaitingTime();
+
+                route.items.push_back(
+                    RouteInfo::WaitItem{
+                        .stop = GetStopNameByIndex(GetStopIndexByName(from) + 1),
+                        .time = GetBusWaitingTime()
+                    }
+                );
+            }
+        }
+
+        route.total_time = total_time;
+        return route;
+    }
+
+    return std::nullopt;
 }
 
 size_t TransportRouter::GetStopIndexByName(const std::string& name) const {
@@ -108,23 +164,10 @@ std::optional<std::string_view> TransportRouter::GetBusByEdgeId(size_t edge_id) 
     return bus_by_edge_id_.at(edge_id);
 }
 
-std::vector<size_t> TransportRouter::GetSameEdges(size_t edge_id) const {
-    std::vector<size_t> edges;
-    auto edge = graph_.GetEdge(edge_id);
-    for (size_t i = 0; i < graph_.GetEdgeCount(); ++i) {
-        auto current_edge = graph_.GetEdge(i);
-        if (edge.from == current_edge.from && edge.to == current_edge.to && i != edge_id) {
-            edges.push_back(i);
-        }
-    }
-
-    return edges;
-}
-
-double TransportRouter::GetEdgeWeight(size_t edge_id) const {
+Minutes TransportRouter::GetEdgeWeight(size_t edge_id) const {
     return graph_.GetEdge(edge_id).weight;
 }
 
-double TransportRouter::GetBusWaitingTime() const {
+Minutes TransportRouter::GetBusWaitingTime() const {
     return waiting_time_;
 }
